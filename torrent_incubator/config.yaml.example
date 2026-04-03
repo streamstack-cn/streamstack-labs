@@ -1,0 +1,28 @@
+# 种子孵化器配置示例
+# 复制此文件为 config.yaml 并按需修改
+
+# 监控目录：孵化器扫描此目录下的 .torrent 文件
+watch_dir: "/path/to/watch"
+
+# qBittorrent 连接信息
+qb_url: "http://localhost:8080"
+qb_username: "admin"
+qb_password: "adminadmin"
+
+# 下载分类（可选，对应 qB 中的 Category）
+qb_category: ""
+
+# 自定义保存路径（可选，留空使用 qB 自动管理）
+qb_save_path: ""
+
+# 额外标签（可选，多个标签以逗号分隔；incubator 标签会自动添加）
+qb_tags: ""
+
+# 下载完成后自动删除 .torrent 文件
+auto_delete_torrent: false
+
+# 扫描间隔（秒，仅在 run_forever 模式下有效）
+scan_interval_seconds: 300
+
+# 状态文件路径（记录所有种子的提交/完成状态）
+state_file: "~/.torrent_incubator/state.json"
