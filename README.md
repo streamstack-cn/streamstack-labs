@@ -1,8 +1,10 @@
 # streamstack-labs
 
-StreamStack 系统实验室工具集的独立开源版本。
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-包含三个相互独立的模块，每个模块均可单独安装使用，无需 StreamStack 主体。
+StreamStack 系统实验室工具集的独立开源版本（GPL-3.0）。
+
+每个模块均可独立使用，无需 StreamStack 主体。
 
 ## 模块列表
 
@@ -11,6 +13,10 @@ StreamStack 系统实验室工具集的独立开源版本。
 | `media_parser` | 媒体文件名解析 + 分类策略 | 无（标准库） |
 | `douban` | 豆瓣数据获取工具 | httpx |
 | `torrent_incubator` | 种子孵化器（监控目录 → qBittorrent） | httpx, pyyaml |
+| `tmdb_hosts` | TMDB 防污染：境外多路 DNS 查询 + hosts 生成 | httpx |
+| `ep_rules` | 集号偏移 + 季号覆盖规则引擎 | 无（标准库） |
+| `notify` | 消息推送工具（PushDeer / Telegram / 企业微信） | httpx |
+| `hdhive_checkin` | 影巢 HDHive 每日签到 + 积分查询 | httpx |
 
 ## 安装
 
@@ -175,9 +181,132 @@ python -m torrent_incubator.incubator --config config.yaml --stats
 
 ---
 
+## tmdb_hosts — TMDB 防污染 DNS 查询
+
+需要 `httpx`。在 GFW 环境下查询 TMDB / Fanart 域名的真实 IP，生成 hosts 条目。
+
+```python
+import asyncio
+from tmdb_hosts import resolve_tmdb_ips, generate_hosts_content
+
+async def main():
+    results = await resolve_tmdb_ips()
+    for domain, ips in results.items():
+        print(f"{domain}: {ips}")
+
+    hosts = generate_hosts_content(results)
+    print(hosts)
+    # 140.82.112.10        api.themoviedb.org
+    # 151.101.193.140      image.tmdb.org
+
+asyncio.run(main())
+```
+
+---
+
+## ep_rules — 集号规则引擎
+
+零依赖，仅使用 Python 标准库。对集号/季号应用自定义偏移和覆盖规则。
+
+```python
+from ep_rules import apply_episode_rules
+
+rules = [
+    {
+        "enabled": True,
+        "title_pattern": "庆余年",
+        "ep_offset": -10,    # 集号 -10（将第11集映射为第1集）
+        "season_override": 2,  # 强制季号为 2
+    }
+]
+
+season, episode = apply_episode_rules("庆余年 第二季", season=None, episode=11, rules=rules)
+print(season, episode)  # 2  1
+```
+
+规则字段说明：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `title_pattern` | str | 正则表达式，匹配影片标题 |
+| `ep_offset` | int | 集号偏移（正数增加，负数减少），偏移后 < 1 时跳过 |
+| `season_override` | int \| None | 覆盖季号；`None` 表示不修改 |
+| `enabled` | bool | 是否启用此规则（默认 True） |
+
+---
+
+## notify — 消息推送工具
+
+需要 `httpx`。支持 PushDeer / Telegram Bot / 企业微信三种推送渠道。
+
+```python
+import asyncio
+from notify import send_pushdeer, send_telegram, send_wechat
+
+async def main():
+    # PushDeer
+    ok = await send_pushdeer(
+        server="https://api2.pushdeer.com",
+        key="PDU...your_key...",
+        title="测试推送",
+        body="这是一条来自 streamstack-labs 的测试消息",
+    )
+    print("PushDeer:", ok)  # True / False
+
+    # Telegram Bot
+    ok = await send_telegram(
+        token="123456:ABCDEFxxx",
+        chat_id="@your_channel",
+        text="Telegram 测试消息",
+    )
+    print("Telegram:", ok)
+
+    # 企业微信
+    ok = await send_wechat(
+        corp_id="ww1234...",
+        app_secret="secret...",
+        agent_id="100001",
+        message="企业微信测试消息",
+    )
+    print("WeChat:", ok)
+
+asyncio.run(main())
+```
+
+---
+
+## hdhive_checkin — 影巢签到工具
+
+需要 `httpx`。调用 HDHive Open API 完成每日签到和积分查询。
+
+```python
+import asyncio
+from hdhive_checkin import checkin, get_points
+
+async def main():
+    # 每日签到（需要 HDHive Open API Key）
+    result = await checkin(
+        api_key="hh_openapi_xxxx",
+        base_url="https://hdhive.com",   # 可替换为自定义镜像
+        is_gambler=False,                # True 启用赌狗模式
+    )
+    print(result)  # {"checked_in": True, "message": "签到成功，获得 10 积分"}
+
+    # 查询积分
+    info = await get_points(api_key="hh_openapi_xxxx")
+    print(info)  # {"name": "用户名", "points": 2345, ...}
+
+asyncio.run(main())
+```
+
+---
+
 ## 许可证
 
-MIT License — 可自由使用、修改、商业用途，保留版权声明即可。
+本项目采用 **GPL-3.0** 许可证开源。
+
+你可以自由使用、修改和分发本代码，但衍生作品必须以相同的 GPL-3.0 协议开源。
+详见 [LICENSE](./LICENSE) 文件或 [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html)。
 
 ## 相关项目
 
